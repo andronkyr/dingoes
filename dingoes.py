@@ -13,7 +13,7 @@ from halo import Halo
 from sys import exit
 from dingoes.hphosts import HpHostsFeed
 from dingoes.report import Report
-from dingoes.confparser import ConfParse
+from dingoes.confparser import ConfParse, ConfParseFeed
 
 import logging
 
@@ -35,9 +35,10 @@ def get_args():
     parser = argparse.ArgumentParser(
         description='Compare DNS server responses.',formatter_class=argparse.MetavarTypeHelpFormatter)
     parser.add_argument('-o', type=str, default=report_filename, help='Report file name')
-    parser.add_argument('-c', type=str, help='hpHosts feed (Default: PSH)', choices=['PSH', 'EMD', 'EXP'], default='PSH')
+#    parser.add_argument('-c', type=str, help='hpHosts feed (Default: PSH)', choices=['PSH', 'EMD', 'EXP'], default='PSH')
     parser.add_argument('-n', type=int, help='Number of hishing sites to test (Default: 500)', default=500)
     parser.add_argument('-s', type=int, help='Shell type: set to 1 if spinner errors occur (default: 0)', default=0)
+    parser.add_argument('-u', type=str, help='Update (download and preprocess) Threat Intelligence feeds', default = 'y')
     args = parser.parse_args()
     return args
 
@@ -57,10 +58,25 @@ def main():
             spinner.fail()
         print("\n\nError parsing configuration file: {}\n".format(e))
         exit(1)
+
+    if (args.u == 'y'):
+        try:
+            if (args.s == 0):
+               spinner.start(text='Parsing threat intelligence feed configuration file')
+            configTI = ConfParseFeed()
+            if (args.s == 0):
+                spinner.succeed()
+        except Exception as e:
+            if(args.s == 0):
+                spinner.fail()
+            print("\n\nError parsing threat intelligence feeds: {}\n".format(e))
+            exit(1)
     try:
         if(args.s == 0):
             spinner.start(text="Retrieving hpHosts feed: {}".format(args.c))
-        hphosts_feed = HpHostsFeed(args.c)
+        #hphosts_feed = HpHostsFeed(args.c)
+        #hphosts_feed = ["google.com","facebook.com"]
+        hphosts_feed = []
         if(args.s == 0):
             spinner.succeed()
     except Exception as e:
