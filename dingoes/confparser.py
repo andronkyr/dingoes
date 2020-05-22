@@ -93,7 +93,7 @@ class ConfParseFeed(object):
         self.config_parser.read_file(open(self.file_name))
         for entry in self.config_parser.sections():
             self.config[entry] = {
-                'feed_source': self.config_parser[entry]['url']
+                'source': self.config_parser[entry]['source'].replace('"','')
             }
 
     @property

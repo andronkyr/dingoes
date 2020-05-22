@@ -14,6 +14,7 @@ from sys import exit
 from dingoes.hphosts import HpHostsFeed
 from dingoes.report import Report
 from dingoes.confparser import ConfParse, ConfParseFeed
+from dingoes.feed_parsers import preprocess
 
 import logging
 
@@ -35,7 +36,7 @@ def get_args():
     parser = argparse.ArgumentParser(
         description='Compare DNS server responses.',formatter_class=argparse.MetavarTypeHelpFormatter)
     parser.add_argument('-o', type=str, default=report_filename, help='Report file name')
-#    parser.add_argument('-c', type=str, help='hpHosts feed (Default: PSH)', choices=['PSH', 'EMD', 'EXP'], default='PSH')
+    parser.add_argument('-c', type=str, help='hpHosts feed (Default: PSH)', choices=['PSH', 'EMD', 'EXP'], default='PSH')
     parser.add_argument('-n', type=int, help='Number of hishing sites to test (Default: 500)', default=500)
     parser.add_argument('-s', type=int, help='Shell type: set to 1 if spinner errors occur (default: 0)', default=0)
     parser.add_argument('-u', type=str, help='Update (download and preprocess) Threat Intelligence feeds', default = 'y')
@@ -66,6 +67,8 @@ def main():
             configTI = ConfParseFeed()
             if (args.s == 0):
                 spinner.succeed()
+            print('[+] Preprocessing threat intelligence feeds')
+            preprocess(configTI)
         except Exception as e:
             if(args.s == 0):
                 spinner.fail()
@@ -74,8 +77,7 @@ def main():
     try:
         if(args.s == 0):
             spinner.start(text="Retrieving hpHosts feed: {}".format(args.c))
-        #hphosts_feed = HpHostsFeed(args.c)
-        #hphosts_feed = ["google.com","facebook.com"]
+        hphosts_feed = HpHostsFeed(args.c)
         hphosts_feed = []
         if(args.s == 0):
             spinner.succeed()
