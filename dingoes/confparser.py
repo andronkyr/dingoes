@@ -80,3 +80,23 @@ class ConfParse(object):
     @property
     def confvalues(self):
         return self.config
+
+class ConfParseFeed(object):
+    '''ConfParseFeed class'''
+    def __init__(self, file_name="feeds.ini"):
+        self.file_name = file_name
+        self.config = {}
+        self.main()
+
+    def main(self):
+        self.config_parser = configparser.ConfigParser()
+        self.config_parser.read_file(open(self.file_name))
+        for entry in self.config_parser.sections():
+            self.config[entry] = {
+                'feed_source': self.config_parser[entry]['url']
+            }
+
+    @property
+    def confvalues(self):
+        return self.config
+
