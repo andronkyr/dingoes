@@ -84,11 +84,7 @@ class Report(object):
         except Exception as e:
             print("\n\nError opening output file {}: {}\n".format(args.o, e))
             exit(1)
-        # csv_header_fieldnames = [
-        #     'Added to hpHosts',
-        #     'Phishing Site Domain',
-        #     'Phishing Site IP Address'
-        # ]
+
         csv_header_fieldnames = ["Domain"]
         csv_header_fieldnames.extend(sorted(self.resolver_names))
         csv_writer = csv.DictWriter(self.output_file_handler, delimiter=',', fieldnames=csv_header_fieldnames)
@@ -113,8 +109,6 @@ class Report(object):
             print(bar, end='\r')
             # Write phishing site details into CSV
             result['Domain'] = feed_entry
-            #result['Added to hpHosts'] = parse(feed_entry.published)
-            #result['Phishing Site IP Address'] = re.findall(r'[0-9]+(?:\.[0-9]+){3}', feed_entry.summary)[0]
             # Iterate through the third-party DNS services
             for resolver_name in self.resolver_names:
                 try:
