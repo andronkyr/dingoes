@@ -104,9 +104,10 @@ def main():
                 domains.append(line.strip())
         report = Report(domains, report_filename, config)
         # Process results
-        print("\nProcessing {} entries, this may take a while:\n".format(args.n))
+        print("\n [+] Processing feed from {}".format(feed))
+        print(" [+] Processing {} entries, this may take a while:\n".format(args.n))
         report.write_results(args.n)
-        print("\nGreat success.\n")
+        print("\n\n [+] Great success.\n")
         # Plot stats histogram
         if(args.s==0):
             report.print_stats_diagram(args.n)
