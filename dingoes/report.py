@@ -1,5 +1,6 @@
 import csv
 import re
+import os
 from etaprogress.progress import ProgressBar
 from dateutil.parser import parse
 from netaddr import *
@@ -10,8 +11,8 @@ from ascii_graph.colordata import vcolor
 
 class Report(object):
     '''Report class'''
-    def __init__(self, hphosts_feed, output_file, config):
-        self.hphosts_feed = hphosts_feed
+    def __init__(self, domains, output_file, config):
+        self.domains = domains
         self.output_file = output_file
         self.output_file_handler = False
         self.config = config
@@ -76,16 +77,19 @@ class Report(object):
 
     def open_csv_file(self):
         '''Open CSV file and add header'''
+        if not os.path.exists('output'):
+            os.makedirs('output')
         try:
-            self.output_file_handler = open(self.output_file, 'w')
+            self.output_file_handler = open("output/" + self.output_file, 'w')
         except Exception as e:
             print("\n\nError opening output file {}: {}\n".format(args.o, e))
             exit(1)
-        csv_header_fieldnames = [
-            'Added to hpHosts',
-            'Phishing Site Domain',
-            'Phishing Site IP Address'
-        ]
+        # csv_header_fieldnames = [
+        #     'Added to hpHosts',
+        #     'Phishing Site Domain',
+        #     'Phishing Site IP Address'
+        # ]
+        csv_header_fieldnames = ["Domain"]
         csv_header_fieldnames.extend(sorted(self.resolver_names))
         csv_writer = csv.DictWriter(self.output_file_handler, delimiter=',', fieldnames=csv_header_fieldnames)
         csv_writer.writeheader()
@@ -98,8 +102,8 @@ class Report(object):
         bar = ProgressBar(entries_to_process, max_width=72)
         # Write CSV header
         csv_writer = self.open_csv_file()
-        # Iter through each feed entry from the hpHosts feed
-        for feed_entry in self.hphosts_feed.entries:
+        # Iter through each feed entry from the feed
+        for feed_entry in self.domains:
             # Stop processing if the number of entries are higher than in '-n'
             if counter > entries_to_process:
                 break
@@ -108,23 +112,23 @@ class Report(object):
             bar.numerator = counter
             print(bar, end='\r')
             # Write phishing site details into CSV
-            result['Phishing Site Domain'] = feed_entry.title
-            result['Added to hpHosts'] = parse(feed_entry.published)
-            result['Phishing Site IP Address'] = re.findall(r'[0-9]+(?:\.[0-9]+){3}', feed_entry.summary)[0]
+            result['Domain'] = feed_entry
+            #result['Added to hpHosts'] = parse(feed_entry.published)
+            #result['Phishing Site IP Address'] = re.findall(r'[0-9]+(?:\.[0-9]+){3}', feed_entry.summary)[0]
             # Iterate through the third-party DNS services
             for resolver_name in self.resolver_names:
                 try:
                     dns_resolvers = self.resolvers[resolver_name]['resolvers']
-                    phishing_domain = result['Phishing Site Domain']
+                    domain = result['Domain']
                     resolver = DnsResolver(dns_resolvers, single_resolver=True)
                     # Retrieve the IP addresses that the third-party DNS service resolves
-                    ip_addresses = resolver.get_ip_address(phishing_domain)
+                    ip_addresses = resolver.get_ip_address(domain)
                 except Exception as e:
                     # Write DNS lookup error message in the CSV file
                     result[resolver_name] = e
                 else:
                     blockpages = self.resolvers[resolver_name]['blockpages']
-                    result[resolver_name] = self.generate_result(ip_addresses, blockpages, resolver_name, phishing_domain)
+                    result[resolver_name] = self.generate_result(ip_addresses, blockpages, resolver_name, domain)
             # Write results into file
             csv_writer.writerow(result)
             # Flush file after writing each line
