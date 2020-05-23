@@ -37,7 +37,6 @@ def get_args():
     parser = argparse.ArgumentParser(
         description='Compare DNS server responses.',formatter_class=argparse.MetavarTypeHelpFormatter)
     parser.add_argument('-o', type=str, default=report_filename, help='Report file name')
-#    parser.add_argument('-c', type=str, help='hpHosts feed (Default: PSH)', choices=['PSH', 'EMD', 'EXP'], default='PSH')
     parser.add_argument('-n', type=int, help='Number of domains to test (Default: 500)', default=500)
     parser.add_argument('-s', type=int, help='Shell type: set to 1 if spinner errors occur (default: 0)', default=0)
     parser.add_argument('-u', type=str, help='Update (download and preprocess) Threat Intelligence feeds', default = 'y')
@@ -83,26 +82,16 @@ def main():
                 spinner.fail()
             print("\n\nError parsing threat intelligence feeds: {}\n".format(e))
             exit(1)
-    # try:
-    #     if(args.s == 0):
-    #         spinner.start(text="Retrieving hpHosts feed: {}".format(args.c))
-    #     hphosts_feed = HpHostsFeed(args.c)
-    #     hphosts_feed = []
-    #     if(args.s == 0):
-    #         spinner.succeed()
-    # except Exception as e:
-    #     if(args.s == 0):
-    #         spinner.fail()
-    #     print("\n\nError retrieving hpHosts feed: {}\n".format(e))
-    #     exit(1)
-    # Create object and load in the retrieved values from above
+
     for feed in configTI.confvalues.keys():
         report_filename = "{}-{}.csv".format(datetime.now().strftime("%d.%m.%Y"),feed)
         domains = []
         with open("input/"+feed,"r") as f:
             for line in f.readlines():
                 domains.append(line.strip())
+
         report = Report(domains, report_filename, config)
+
         # Process results
         print("\n [+] Processing feed from {}".format(feed))
         print(" [+] Processing {} entries, this may take a while:\n".format(args.n))
