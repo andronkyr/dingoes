@@ -15,6 +15,7 @@ from dingoes.hphosts import HpHostsFeed
 from dingoes.report import Report
 from dingoes.confparser import ConfParse, ConfParseFeed
 from dingoes.feed_parsers import preprocess
+from datetime import datetime
 
 import logging
 
@@ -36,8 +37,8 @@ def get_args():
     parser = argparse.ArgumentParser(
         description='Compare DNS server responses.',formatter_class=argparse.MetavarTypeHelpFormatter)
     parser.add_argument('-o', type=str, default=report_filename, help='Report file name')
-    parser.add_argument('-c', type=str, help='hpHosts feed (Default: PSH)', choices=['PSH', 'EMD', 'EXP'], default='PSH')
-    parser.add_argument('-n', type=int, help='Number of hishing sites to test (Default: 500)', default=500)
+#    parser.add_argument('-c', type=str, help='hpHosts feed (Default: PSH)', choices=['PSH', 'EMD', 'EXP'], default='PSH')
+    parser.add_argument('-n', type=int, help='Number of domains to test (Default: 500)', default=500)
     parser.add_argument('-s', type=int, help='Shell type: set to 1 if spinner errors occur (default: 0)', default=0)
     parser.add_argument('-u', type=str, help='Update (download and preprocess) Threat Intelligence feeds', default = 'y')
     args = parser.parse_args()
@@ -60,13 +61,21 @@ def main():
         print("\n\nError parsing configuration file: {}\n".format(e))
         exit(1)
 
+    try:
+        if (args.s == 0):
+            spinner.start(text='Parsing threat intelligence feed configuration file')
+        configTI = ConfParseFeed()
+        if (args.s == 0):
+            spinner.succeed()
+    except Exception as e:
+        if(args.s == 0):
+            spinner.fail()
+        print("\n\nError parsing configuration file: {}\n".format(e))
+        exit(1)
+
+
     if (args.u == 'y'):
         try:
-            if (args.s == 0):
-               spinner.start(text='Parsing threat intelligence feed configuration file')
-            configTI = ConfParseFeed()
-            if (args.s == 0):
-                spinner.succeed()
             print('[+] Preprocessing threat intelligence feeds')
             preprocess(configTI)
         except Exception as e:
@@ -74,29 +83,34 @@ def main():
                 spinner.fail()
             print("\n\nError parsing threat intelligence feeds: {}\n".format(e))
             exit(1)
-    try:
-        if(args.s == 0):
-            spinner.start(text="Retrieving hpHosts feed: {}".format(args.c))
-        hphosts_feed = HpHostsFeed(args.c)
-        hphosts_feed = []
-        if(args.s == 0):
-            spinner.succeed()
-    except Exception as e:
-        if(args.s == 0):
-            spinner.fail()
-        print("\n\nError retrieving hpHosts feed: {}\n".format(e))
-        exit(1)
+    # try:
+    #     if(args.s == 0):
+    #         spinner.start(text="Retrieving hpHosts feed: {}".format(args.c))
+    #     hphosts_feed = HpHostsFeed(args.c)
+    #     hphosts_feed = []
+    #     if(args.s == 0):
+    #         spinner.succeed()
+    # except Exception as e:
+    #     if(args.s == 0):
+    #         spinner.fail()
+    #     print("\n\nError retrieving hpHosts feed: {}\n".format(e))
+    #     exit(1)
     # Create object and load in the retrieved values from above
-    report_filename = "hpHosts-{}-{}".format(args.c, args.o)
-    report = Report(hphosts_feed, report_filename, config)
-    # Process results
-    print("\nProcessing {} entries, this may take a while:\n".format(args.n))
-    report.write_results(args.n)
-    print("\nGreat success.\n")
-    # Plot stats histogram
-    if(args.s==0):
-        report.print_stats_diagram(args.n)
-    print("\nDetailed report is available in {}\n".format(report_filename))
+    for feed in configTI.confvalues.keys():
+        report_filename = "{}-{}.csv".format(datetime.now().strftime("%d.%m.%Y"),feed)
+        domains = []
+        with open("input/"+feed,"r") as f:
+            for line in f.readlines():
+                domains.append(line.strip())
+        report = Report(domains, report_filename, config)
+        # Process results
+        print("\nProcessing {} entries, this may take a while:\n".format(args.n))
+        report.write_results(args.n)
+        print("\nGreat success.\n")
+        # Plot stats histogram
+        if(args.s==0):
+            report.print_stats_diagram(args.n)
+        print("\nDetailed report is available in {}\n".format(report_filename))
 
 def signal_handler(signal, frame):
     print('\n\nYou pressed Ctrl+C!\n')
