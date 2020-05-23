@@ -19,6 +19,29 @@ from datetime import datetime
 
 import logging
 
+import queue as Queue
+import threading
+
+output_queue = queue.Queue()
+
+
+def load_queue(filename):
+    domain_queue = Queue.Queue()
+    with open("input/"+feed,"r") as f:
+        for line in f.readlines():
+            domain_queue.append(line.strip())
+    return domain_queue 
+
+        
+
+
+
+
+
+
+
+
+
 def print_banner():
     """Print welcome banner
 
@@ -86,11 +109,9 @@ def main():
     for feed in configTI.confvalues.keys():
         report_filename = "{}-{}.csv".format(datetime.now().strftime("%d.%m.%Y"),feed)
         domains = []
-        with open("input/"+feed,"r") as f:
-            for line in f.readlines():
-                domains.append(line.strip())
+        domain_queue = load_queue(feed)
 
-        report = Report(domains, report_filename, config)
+        report = Report(domain_queue, report_filename, config)
 
         # Process results
         print("\n [+] Processing feed from {}".format(feed))
