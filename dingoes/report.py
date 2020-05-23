@@ -65,13 +65,13 @@ class Report(object):
         # Return 'SITE_BLOCKED_OK' if the phishing site's domain name resolves to
         # one of the block pages of the DNS services.
         if self.is_blocked(ip_addresses, blockpages, phishing_domain):
-            result = 'SITE_BLOCKED_OK'
+            result = 'SITE_BLOCKED_OK' +"(" + ",".join(str(answer).replace("255.255.255.255","NXDOMAIN")  for answer in ip_addresses) +")" 
             self.add_to_stats(resolver_name)
         # If the website is not blocked, return with the website's IP address
         else:
             results = []
             for ip_address in ip_addresses:
-                results.append(str(ip_address))
+                results.append(str(ip_address).replace("255.255.255.255","NXDOMAIN") )
             result = "\n".join(results)
         return result
 
