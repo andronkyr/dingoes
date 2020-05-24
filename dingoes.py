@@ -16,30 +16,18 @@ from dingoes.report import Report
 from dingoes.confparser import ConfParse, ConfParseFeed
 from dingoes.feed_parsers import preprocess
 from datetime import datetime
-
-import logging
-
-import queue as Queue
+import queue 
 import threading
 
-output_queue = queue.Queue()
-
-
-def load_queue(filename):
-    domain_queue = Queue.Queue()
-    with open("input/"+feed,"r") as f:
+def load_queue(number_of_domains,filename):
+    domain_queue = queue.Queue()
+    counter = 0
+    with open("input/"+filename,"r") as f:
         for line in f.readlines():
-            domain_queue.append(line.strip())
-    return domain_queue 
-
-        
-
-
-
-
-
-
-
+            if counter < number_of_domains:
+                domain_queue.put(line.strip())
+                counter = counter + 1 
+    return domain_queue        
 
 
 def print_banner():
@@ -63,6 +51,7 @@ def get_args():
     parser.add_argument('-n', type=int, help='Number of domains to test (Default: 500)', default=500)
     parser.add_argument('-s', type=int, help='Shell type: set to 1 if spinner errors occur (default: 0)', default=0)
     parser.add_argument('-u', type=str, help='Update (download and preprocess) Threat Intelligence feeds', default = 'y')
+    parser.add_argument('-t', type=int, help='Number of worker threds', default = 1)
     args = parser.parse_args()
     return args
 
@@ -109,18 +98,18 @@ def main():
     for feed in configTI.confvalues.keys():
         report_filename = "{}-{}.csv".format(datetime.now().strftime("%d.%m.%Y"),feed)
         domains = []
-        domain_queue = load_queue(feed)
-
-        report = Report(domain_queue, report_filename, config)
+        domain_queue = load_queue(args.n,feed)
+        domain_number = domain_queue.qsize()
+        report = Report(domains, report_filename, config)
 
         # Process results
-        print("\n [+] Processing feed from {}".format(feed))
-        print(" [+] Processing {} entries, this may take a while:\n".format(args.n))
-        report.write_results(args.n)
-        print("\n\n [+] Great success.\n")
+        print("\n[+] Processing feed from {}".format(feed))
+        print("[+] Processing {} entries, this may take a while:\n".format(domain_number))
+        report.write_results(args.t,domain_queue)
+        print("\n\n[+] Great success.\n")
         # Plot stats histogram
         if(args.s==0):
-            report.print_stats_diagram(args.n)
+            report.print_stats_diagram(domain_number)
         print("\nDetailed report is available in {}\n".format(report_filename))
 
 def signal_handler(signal, frame):

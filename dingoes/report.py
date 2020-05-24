@@ -8,6 +8,63 @@ from dingoes.resolver import DnsResolver
 from ascii_graph import Pyasciigraph
 from ascii_graph.colors import *
 from ascii_graph.colordata import vcolor
+import threading
+import queue
+import time
+import sys
+
+
+
+output_queue = queue.Queue()
+mutex = threading.Lock()
+
+class myThread (threading.Thread):
+   def __init__(self, threadID, name, queue, nr_domains, report):
+      threading.Thread.__init__(self)
+      self.threadID = threadID
+      self.name = name
+      self.queue = queue
+      self.report = report
+      self.nr_domains = nr_domains
+
+   def run(self):
+      while True:
+        # Pop a query from the queue
+
+        data = self.queue.get()
+        # print("ThreadID {} processing domain {}".format(self.threadID,data))
+        output_queue.put(self.report.generate_results(data))
+        # Informational Printing 
+        #mutex.acquire()
+        #try:
+        p = 100 - self.queue.qsize()/self.nr_domains*100
+        sys.stdout.write('\r[{}] {}% - Queries Left: {}'.format (('#' * int(p / 2)).ljust(50, ' '), int(p),self.queue.qsize()))
+        sys.stdout.flush()
+        #finally:
+        #    mutex.release()
+
+        self.queue.task_done()
+        time.sleep(.2)
+
+
+def workload(report,threat_count,queue):
+    domains = queue.qsize()
+    thread_number = threat_count
+    threadlist = []
+    threads=[]
+    for i in range(0,int(thread_number)):
+        threadlist.append("Thread-"+str(i))
+    threadID = 1
+    for tName in threadlist:
+       thread = myThread(threadID, tName, queue, domains, report)
+       thread.setDaemon(True)
+       threads.append(thread)
+       threadID += 1
+    
+    for t in threads:
+       t.start()
+    queue.join()
+
 
 class Report(object):
     '''Report class'''
@@ -40,7 +97,8 @@ class Report(object):
                 # blocking was unsuccessful
                 if len(nx_intersection) == 0:
                     response = 'NXDOMAIN'
-                    return response
+                    #return response
+                    return False
                 # If Google DNS and the DNS server under inspection responds with the same IP addresses
                 # the block is unsuccessful
                 else:
@@ -65,8 +123,10 @@ class Report(object):
         # Return 'SITE_BLOCKED_OK' if the phishing site's domain name resolves to
         # one of the block pages of the DNS services.
         if self.is_blocked(ip_addresses, blockpages, phishing_domain):
-            result = 'SITE_BLOCKED_OK' +"(" + ",".join(str(answer).replace("255.255.255.255","NXDOMAIN")  for answer in ip_addresses) +")" 
-            self.add_to_stats(resolver_name)
+
+            result = 'SITE_BLOCKED_OK' +"(" + ",".join(str(answer).replace("255.255.255.255","NXDOMAIN")  for answer in ip_addresses) +")"
+
+        #    self.add_to_stats(resolver_name)
         # If the website is not blocked, return with the website's IP address
         else:
             results = []
@@ -91,46 +151,44 @@ class Report(object):
         csv_writer.writeheader()
         return csv_writer
 
-    def write_results(self, entries_to_process):
+    def generate_results(self,domain):
+        result = {}
+        result['Domain'] = domain
+        # Iterate through the third-party DNS services
+        for resolver_name in self.resolver_names:
+            try:
+                dns_resolvers = self.resolvers[resolver_name]['resolvers']
+                domain = result['Domain']
+                resolver = DnsResolver(dns_resolvers, single_resolver=True)
+                # Retrieve the IP addresses that the third-party DNS service resolves
+                ip_addresses = resolver.get_ip_address(domain)
+            except Exception as e:
+                # Write DNS lookup error message in the CSV file
+                result[resolver_name] = e
+            else:
+                blockpages = self.resolvers[resolver_name]['blockpages']
+                result[resolver_name] = self.generate_result(ip_addresses, blockpages, resolver_name, domain)       
+        return (result)
+
+
+    def write_results(self,thread_count,domain_queue):
         '''Write results into CSV file'''
         counter = 1
-        # Create progress bar
-        bar = ProgressBar(entries_to_process, max_width=72)
+        workload(self,thread_count,domain_queue)
+
         # Write CSV header
         csv_writer = self.open_csv_file()
-        # Iter through each feed entry from the feed
-        for feed_entry in self.domains:
-            # Stop processing if the number of entries are higher than in '-n'
-            if counter > entries_to_process:
-                break
-            result = {}
-            # Update progress bar
-            bar.numerator = counter
-            print(bar, end='\r')
-            # Write phishing site details into CSV
-            result['Domain'] = feed_entry
-            # Iterate through the third-party DNS services
-            for resolver_name in self.resolver_names:
-                try:
-                    dns_resolvers = self.resolvers[resolver_name]['resolvers']
-                    domain = result['Domain']
-                    resolver = DnsResolver(dns_resolvers, single_resolver=True)
-                    # Retrieve the IP addresses that the third-party DNS service resolves
-                    ip_addresses = resolver.get_ip_address(domain)
-                except Exception as e:
-                    # Write DNS lookup error message in the CSV file
-                    result[resolver_name] = e
-                else:
-                    blockpages = self.resolvers[resolver_name]['blockpages']
-                    result[resolver_name] = self.generate_result(ip_addresses, blockpages, resolver_name, domain)
-            # Write results into file
-            csv_writer.writerow(result)
-            # Flush file after writing each line
+        while not (output_queue.empty()):
+            row = output_queue.get()
+            csv_writer.writerow(row)
+            for resolver in row:
+                if ("SITE_BLOCKED_OK" in str(row[resolver])):
+                    self.add_to_stats(resolver)
+                # Flush file after writing each line
             self.output_file_handler.flush()
-            counter += 1
         # Close output file
         self.output_file_handler.close()
-        return counter
+
 
     def add_to_stats(self, resolver_name):
         self.statistics[resolver_name] += 1

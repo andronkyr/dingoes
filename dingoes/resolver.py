@@ -3,7 +3,7 @@ from netaddr import *
 
 class DnsResolver(object):
     def __init__(self, dns_resolvers = ['8.8.8.8', '8.8.4.4'], retry_servfail=False, single_resolver=False):
-        self.dns_query_timeout = 8.0
+        self.dns_query_timeout = 20
         self.dns_resolvers = dns_resolvers
         self.my_resolver = False
         self.retry_servfail = retry_servfail
