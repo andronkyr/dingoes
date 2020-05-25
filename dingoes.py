@@ -47,7 +47,7 @@ def get_args():
     report_filename = "report_{}_{}.csv".format(time.strftime("%Y-%m-%d_%H%M"), epoch_time)
     parser = argparse.ArgumentParser(
         description='Compare DNS server responses.',formatter_class=argparse.MetavarTypeHelpFormatter)
-    parser.add_argument('-o', type=str, default=report_filename, help='Report file name')
+ #   parser.add_argument('-o', type=str, default=report_filename, help='Report file name')
     parser.add_argument('-n', type=int, help='Number of domains to test (Default: 500)', default=500)
     parser.add_argument('-s', type=int, help='Shell type: set to 1 if spinner errors occur (default: 0)', default=0)
     parser.add_argument('-u', type=str, help='Update (download and preprocess) Threat Intelligence feeds', default = 'y')
@@ -96,7 +96,7 @@ def main():
             exit(1)
 
     for feed in configTI.confvalues.keys():
-        report_filename = "{}-{}.csv".format(datetime.now().strftime("%d.%m.%Y"),feed)
+        report_filename = "{}-{}".format(datetime.now().strftime("%d.%m.%Y"),feed)
         domains = []
         domain_queue = load_queue(args.n,feed)
         domain_number = domain_queue.qsize()

@@ -12,6 +12,7 @@ import threading
 import queue
 import time
 import sys
+import json
 
 
 
@@ -88,17 +89,19 @@ class Report(object):
         intersection = ip_addresses & blockpages
         # If response was NXDOMAIN, we need to verify if a non-filtering server respond with NXDOMAIN too
         # e.g. the domain is taken down
+
+        # Answer is NXDomain. Let's investigate if it is due to blocking or the domain does not actually exist.
         if IPAddress('255.255.255.255') in ip_addresses:
             try:
                 # Get the IP address from Google DNS
                 google_dns_response = self.resolver.get_ip_address(phishing_domain)
                 nx_intersection = ip_addresses & google_dns_response
                 # If Google DNS and the DNS server responds with different results, the
-                # blocking was unsuccessful
+                # blocking was successful. 
                 if len(nx_intersection) == 0:
                     response = 'NXDOMAIN'
                     #return response
-                    return False
+                    return True
                 # If Google DNS and the DNS server under inspection responds with the same IP addresses
                 # the block is unsuccessful
                 else:
@@ -110,7 +113,8 @@ class Report(object):
         elif len(intersection) > 0:
             # If the IP address is in the list of IP addresses of block pages
             # the website is blocked successfully
-            return intersection
+            return True
+            # return intersection
         # Return 'non-blocked' in case of any other errors
         else:
             return False
@@ -122,7 +126,9 @@ class Report(object):
         result = False
         # Return 'SITE_BLOCKED_OK' if the phishing site's domain name resolves to
         # one of the block pages of the DNS services.
-        if self.is_blocked(ip_addresses, blockpages, phishing_domain):
+        blocked = self.is_blocked(ip_addresses, blockpages, phishing_domain)
+
+        if blocked:
 
             result = 'SITE_BLOCKED_OK' +"(" + ",".join(str(answer).replace("255.255.255.255","NXDOMAIN")  for answer in ip_addresses) +")"
 
@@ -132,7 +138,7 @@ class Report(object):
             results = []
             for ip_address in ip_addresses:
                 results.append(str(ip_address).replace("255.255.255.255","NXDOMAIN") )
-            result = "\n".join(results)
+            result = ",".join(results)
         return result
 
     def open_csv_file(self):
@@ -140,7 +146,7 @@ class Report(object):
         if not os.path.exists('output'):
             os.makedirs('output')
         try:
-            self.output_file_handler = open("output/" + self.output_file, 'w')
+            self.output_file_handler = open("output/" + self.output_file +".csv", 'w')
         except Exception as e:
             print("\n\nError opening output file {}: {}\n".format(args.o, e))
             exit(1)
@@ -178,14 +184,16 @@ class Report(object):
 
         # Write CSV header
         csv_writer = self.open_csv_file()
-        while not (output_queue.empty()):
-            row = output_queue.get()
-            csv_writer.writerow(row)
-            for resolver in row:
-                if ("SITE_BLOCKED_OK" in str(row[resolver])):
-                    self.add_to_stats(resolver)
-                # Flush file after writing each line
-            self.output_file_handler.flush()
+        with open(("output/" + self.output_file+".json"), 'w') as f:
+            while not (output_queue.empty()):
+                row = output_queue.get()
+                csv_writer.writerow(row)
+                f.write(json.dumps(str(row))+"\n")
+                for resolver in row:
+                    if ("SITE_BLOCKED_OK" in str(row[resolver])):
+                        self.add_to_stats(resolver)
+                    # Flush file after writing each line
+                self.output_file_handler.flush()
         # Close output file
         self.output_file_handler.close()
 
