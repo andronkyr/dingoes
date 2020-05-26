@@ -7,7 +7,7 @@ from dingoes.resolver import DnsResolver
 
 class ConfParse(object):
     '''ConfParse class'''
-    def __init__(self, file_name="services.ini"):
+    def __init__(self, file_name="conf/services.ini"):
         self.file_name = file_name
         self.config_parser = False
         self.config = {}
@@ -83,7 +83,7 @@ class ConfParse(object):
 
 class ConfParseFeed(object):
     '''ConfParseFeed class'''
-    def __init__(self, file_name="feeds.ini"):
+    def __init__(self, file_name="conf/feeds.ini"):
         self.file_name = file_name
         self.config = {}
         self.main()
