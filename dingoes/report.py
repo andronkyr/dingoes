@@ -89,9 +89,8 @@ class Report(object):
         intersection = ip_addresses & blockpages
         # If response was NXDOMAIN, we need to verify if a non-filtering server respond with NXDOMAIN too
         # e.g. the domain is taken down
-
         # Answer is NXDomain. Let's investigate if it is due to blocking or the domain does not actually exist.
-        if IPAddress('255.255.255.255') in ip_addresses:
+        if IPAddress('255.255.255.255') in ip_addresses and IPAddress('255.255.255.255') in blockpages:
             try:
                 # Get the IP address from Google DNS
                 google_dns_response = self.resolver.get_ip_address(phishing_domain)

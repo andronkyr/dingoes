@@ -16,8 +16,6 @@ from dingoes.report import Report
 from dingoes.confparser import ConfParse, ConfParseFeed
 from dingoes.feed_parsers import preprocess
 from datetime import datetime
-<<<<<<< HEAD
-=======
 import queue 
 import threading
 
@@ -30,7 +28,6 @@ def load_queue(number_of_domains,filename):
                 domain_queue.put(line.strip())
                 counter = counter + 1 
     return domain_queue        
->>>>>>> threads
 
 
 def print_banner():
