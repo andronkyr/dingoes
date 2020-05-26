@@ -1,0 +1,16 @@
+version: '3'
+services:
+  dingoes:
+    build: .
+    container_name: dingoes
+    image: dingoes
+    tty: true
+    stdin_open: true
+    volumes:
+      - ./conf:/conf
+      - ./input:/input
+      - ./input_raw:/input_raw
+      - ./output:/output
+    command: /bin/python3 -u dingoes.py -u n -t 8 -n 100
+    environment:
+          - PYTHONUNBUFFERED:1

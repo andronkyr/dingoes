@@ -5,4 +5,4 @@ RUN apt-get update -y && \
 
 COPY . . 
 RUN pip3 install -r requirements.txt
-CMD ["/bin/python3","dingoes.py" ]
+CMD ["/bin/python3","dingoes.py", "-h" ]
