@@ -3,7 +3,7 @@
 Compare website blocking effectiveness of popular public DNS servers
 
 This tool downloads the latest feed of malicious and deceptive websites
-from ~~hpHost~~ dofferent threat intelligence providers  and looks up whether these websites are
+from ~~hpHost~~ different threat intelligence providers  and looks up whether these websites are
 blocked on popular third-party malware-blocking and anti-phishing DNS
 services.
 
