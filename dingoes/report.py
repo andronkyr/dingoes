@@ -168,7 +168,7 @@ class Report(object):
                 ip_addresses = resolver.get_ip_address(domain)
             except Exception as e:
                 # Write DNS lookup error message in the CSV file
-                result[resolver_name] = e
+                result[resolver_name] = str(e)
             else:
                 blockpages = self.resolvers[resolver_name]['blockpages']
                 result[resolver_name] = self.generate_result(ip_addresses, blockpages, resolver_name, domain)       
@@ -187,7 +187,7 @@ class Report(object):
             while not (output_queue.empty()):
                 row = output_queue.get()
                 csv_writer.writerow(row)
-                f.write(json.dumps(str(row))+"\n")
+                f.write(json.dumps(row)+"\n")
                 for resolver in row:
                     if ("SITE_BLOCKED_OK" in str(row[resolver])):
                         self.add_to_stats(resolver)
